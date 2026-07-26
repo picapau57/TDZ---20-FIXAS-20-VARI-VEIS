@@ -316,22 +316,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 <ArrowRight className="w-4 h-4" />
               </button>
 
-              {/* Demo Logins Info */}
-              <div className="mt-6 pt-4 border-t border-white/10 text-left">
-                <p className="text-[11px] text-slate-400 font-bold uppercase mb-2">
-                  💡 Acessos de Demonstração para Teste:
-                </p>
-                <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
-                  <div className="p-2 bg-slate-950 rounded border border-slate-800">
-                    <span className="text-amber-400 font-bold block">ADMIN:</span>
-                    <span>admin / admin123</span>
-                  </div>
-                  <div className="p-2 bg-slate-950 rounded border border-slate-800">
-                    <span className="text-emerald-400 font-bold block">JOGADOR:</span>
-                    <span>jogador1 / 123456</span>
-                  </div>
-                </div>
-              </div>
+
             </form>
           ) : (
             /* REGISTER FORM */
