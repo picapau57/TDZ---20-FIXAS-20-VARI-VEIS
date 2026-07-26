@@ -15,13 +15,17 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   games,
   gameMode,
 }) => {
+  const [includeLabel, setIncludeLabel] = useState(false);
+  const [separator, setSeparator] = useState<'dash' | 'space' | 'comma'>('dash');
   const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
 
+  const sepChar = separator === 'dash' ? ' - ' : separator === 'comma' ? ', ' : ' ';
+
   // Format games text
   const formattedText = games
-    .map(g => `${g.label}: ${g.numbers.join(' - ')}`)
+    .map(g => (includeLabel ? `${g.label}: ` : '') + g.numbers.join(sepChar))
     .join('\n');
 
   const handleCopy = () => {
@@ -63,6 +67,55 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           >
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* Format Options Bar */}
+        <div className="p-3 bg-slate-950/60 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <label className="flex items-center gap-2 cursor-pointer select-none text-slate-300 font-semibold hover:text-white transition">
+            <input
+              type="checkbox"
+              checked={includeLabel}
+              onChange={(e) => setIncludeLabel(e.target.checked)}
+              className="w-4 h-4 rounded bg-slate-900 border-slate-700 text-amber-500 focus:ring-amber-500 focus:ring-offset-slate-950"
+            />
+            <span>Incluir numeração dos jogos (ex: J1, J2...)</span>
+          </label>
+
+          <div className="flex items-center gap-2">
+            <span className="text-slate-400 font-medium">Separador:</span>
+            <div className="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[11px] font-bold">
+              <button
+                onClick={() => setSeparator('dash')}
+                className={`px-2.5 py-1 rounded-md transition ${
+                  separator === 'dash'
+                    ? 'bg-amber-500 text-slate-950'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Tracinho ( - )
+              </button>
+              <button
+                onClick={() => setSeparator('space')}
+                className={`px-2.5 py-1 rounded-md transition ${
+                  separator === 'space'
+                    ? 'bg-amber-500 text-slate-950'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Espaço ( )
+              </button>
+              <button
+                onClick={() => setSeparator('comma')}
+                className={`px-2.5 py-1 rounded-md transition ${
+                  separator === 'comma'
+                    ? 'bg-amber-500 text-slate-950'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Vírgula ( , )
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Text Area Preview */}
