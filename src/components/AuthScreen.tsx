@@ -215,7 +215,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
 
                 <div>
                   <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">
-                    Chave PIX do Administrador:
+                    Chave PIX Celular do Administrador:
                   </label>
                   <div className="flex items-center gap-2">
                     <input
@@ -242,7 +242,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
               {/* Action Buttons */}
               <div className="space-y-2">
                 <a
-                  href={`https://wa.me/55${(pendingUser?.phone || regSuccess?.phone || '').replace(/\D/g, '')}?text=${whatsappMessage}`}
+                  href={`https://wa.me/5562984289911?text=${whatsappMessage}`}
                   target="_blank"
                   rel="noreferrer"
                   className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition shadow-lg"

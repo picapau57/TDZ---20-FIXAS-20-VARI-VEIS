@@ -24,7 +24,7 @@ const DEFAULT_USERS: User[] = [
     id: 'admin-1',
     username: 'admin',
     name: 'Administrador Pica-Pau',
-    phone: '(11) 99999-9999',
+    phone: '(62) 98428-9911',
     password: 'admin123',
     status: 'approved',
     role: 'admin',
@@ -72,7 +72,8 @@ export default function App() {
   // Chave PIX configuration
   const [pixKey, setPixKey] = useState<string>(() => {
     const saved = localStorage.getItem(`${STORAGE_KEY}_pix_key`);
-    return saved || 'picapauinformatica@gmail.com';
+    if (!saved || saved === 'picapauinformatica@gmail.com') return '(62) 98428-9911';
+    return saved;
   });
 
   // View state: 'games' | 'admin' | 'auth'
