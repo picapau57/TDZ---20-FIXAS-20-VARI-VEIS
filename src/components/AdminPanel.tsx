@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, UserStatus } from '../types';
-import { ShieldCheck, UserCheck, UserX, Trash2, Phone, Search, DollarSign, Clock, CheckCircle, Key, Save } from 'lucide-react';
+import { ShieldCheck, UserCheck, UserX, Trash2, Phone, Search, DollarSign, Clock, CheckCircle, Key, Save, UserPlus, X, AlertCircle } from 'lucide-react';
 
 interface AdminPanelProps {
   users: User[];
@@ -9,6 +9,7 @@ interface AdminPanelProps {
   pixKey: string;
   onUpdatePixKey: (newPixKey: string) => void;
   onCloseAdmin: () => void;
+  onAddManualUser: (newUser: Omit<User, 'id' | 'createdAt'>) => void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -18,11 +19,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   pixKey,
   onUpdatePixKey,
   onCloseAdmin,
+  onAddManualUser,
 }) => {
   const [filterStatus, setFilterStatus] = useState<UserStatus | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [editingPixKey, setEditingPixKey] = useState(pixKey);
   const [pixSavedMessage, setPixSavedMessage] = useState(false);
+
+  // Manual Add Player State
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addName, setAddName] = useState('');
+  const [addUsername, setAddUsername] = useState('');
+  const [addPhone, setAddPhone] = useState('');
+  const [addPassword, setAddPassword] = useState('123456');
+  const [addStatus, setAddStatus] = useState<UserStatus>('approved');
+  const [addError, setAddError] = useState('');
+  const [addSuccess, setAddSuccess] = useState('');
 
   const pendingCount = users.filter(u => u.status === 'pending').length;
   const approvedCount = users.filter(u => u.status === 'approved' && u.role !== 'admin').length;
@@ -48,6 +60,44 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setTimeout(() => setPixSavedMessage(false), 2500);
   };
 
+  const handleAddSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddError('');
+    setAddSuccess('');
+
+    if (!addUsername.trim() || !addPassword.trim()) {
+      setAddError('Nome de usuário e senha são obrigatórios.');
+      return;
+    }
+
+    const cleanUsername = addUsername.trim().toLowerCase();
+    const existing = users.find(u => u.username.toLowerCase() === cleanUsername);
+    if (existing) {
+      setAddError(`O usuário "${cleanUsername}" já existe no sistema.`);
+      return;
+    }
+
+    onAddManualUser({
+      name: addName.trim() || cleanUsername,
+      username: cleanUsername,
+      phone: addPhone.trim() || '(62) 98428-9911',
+      password: addPassword.trim(),
+      status: addStatus,
+      role: 'user',
+    });
+
+    setAddSuccess(`Jogador "${cleanUsername}" cadastrado com sucesso (${addStatus === 'approved' ? 'Acesso Liberado' : 'Aguardando'}).`);
+    setAddName('');
+    setAddUsername('');
+    setAddPhone('');
+    setAddPassword('123456');
+
+    setTimeout(() => {
+      setAddSuccess('');
+      setShowAddForm(false);
+    }, 2000);
+  };
+
   return (
     <div className="bg-[#111] border border-white/10 rounded-2xl p-4 sm:p-6 shadow-2xl space-y-6">
       {/* Admin Top Header */}
@@ -66,13 +116,132 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
         </div>
 
-        <button
-          onClick={onCloseAdmin}
-          className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition"
-        >
-          Voltar para os Jogos TDZ
-        </button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="flex-1 sm:flex-initial px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl transition shadow-lg flex items-center justify-center gap-1.5"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>+ Cadastrar Jogador</span>
+          </button>
+
+          <button
+            onClick={onCloseAdmin}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition"
+          >
+            Voltar para Jogos
+          </button>
+        </div>
       </div>
+
+      {/* Manual Add Player Form Box */}
+      {showAddForm && (
+        <div className="bg-slate-950 p-4 rounded-xl border border-emerald-500/40 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h3 className="text-sm font-black text-emerald-400 uppercase flex items-center gap-2">
+              <UserPlus className="w-4 h-4" />
+              Cadastrar Jogador Manuais (Aprovação Imediata ou Pendente)
+            </h3>
+            <button
+              onClick={() => setShowAddForm(false)}
+              className="text-slate-400 hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {addError && (
+            <div className="p-2.5 bg-rose-950/80 border border-rose-500/50 rounded-lg text-rose-300 text-xs font-medium flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{addError}</span>
+            </div>
+          )}
+
+          {addSuccess && (
+            <div className="p-2.5 bg-emerald-950/80 border border-emerald-500/50 rounded-lg text-emerald-300 text-xs font-medium flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 shrink-0" />
+              <span>{addSuccess}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleAddSubmit} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+            <div>
+              <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Nome Completo</label>
+              <input
+                type="text"
+                value={addName}
+                onChange={(e) => setAddName(e.target.value)}
+                placeholder="ex: Dona"
+                className="w-full bg-slate-900 text-white text-xs px-3 py-2 rounded-lg border border-slate-800 outline-none focus:border-amber-400"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Usuário (Login) *</label>
+              <input
+                type="text"
+                value={addUsername}
+                onChange={(e) => setAddUsername(e.target.value)}
+                placeholder="ex: dona"
+                className="w-full bg-slate-900 text-white text-xs px-3 py-2 rounded-lg border border-slate-800 outline-none focus:border-amber-400"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Telefone / WhatsApp</label>
+              <input
+                type="text"
+                value={addPhone}
+                onChange={(e) => setAddPhone(e.target.value)}
+                placeholder="(62) 98428-9911"
+                className="w-full bg-slate-900 text-white text-xs px-3 py-2 rounded-lg border border-slate-800 outline-none focus:border-amber-400"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Senha *</label>
+              <input
+                type="text"
+                value={addPassword}
+                onChange={(e) => setAddPassword(e.target.value)}
+                placeholder="123456"
+                className="w-full bg-slate-900 text-white text-xs px-3 py-2 rounded-lg border border-slate-800 outline-none focus:border-amber-400"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Acesso Inicial</label>
+              <select
+                value={addStatus}
+                onChange={(e) => setAddStatus(e.target.value as UserStatus)}
+                className="w-full bg-slate-900 text-white text-xs px-3 py-2 rounded-lg border border-slate-800 outline-none focus:border-amber-400"
+              >
+                <option value="approved">Aprovado (Liberado)</option>
+                <option value="pending">Pendente (Aguardando PIX)</option>
+              </select>
+            </div>
+
+            <div className="sm:col-span-2 md:col-span-5 flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowAddForm(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg transition"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="submit"
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-lg transition shadow-md"
+              >
+                Salvar e Cadastrar Jogador
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Financial Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

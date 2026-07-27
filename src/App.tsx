@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Header } from './components/Header';
 import { FixasInput } from './components/FixasInput';
 import { VariaveisInput } from './components/VariaveisInput';
@@ -29,6 +29,16 @@ const DEFAULT_USERS: User[] = [
     status: 'approved',
     role: 'admin',
     createdAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'user-dona',
+    username: 'dona',
+    name: 'Dona',
+    phone: '(62) 98428-9911',
+    password: '123456',
+    status: 'pending',
+    role: 'user',
+    createdAt: new Date().toISOString(),
   },
   {
     id: 'user-1',
@@ -64,9 +74,7 @@ export default function App() {
     const saved = localStorage.getItem(`${STORAGE_KEY}_current_user`);
     if (!saved) return null;
     const parsed = JSON.parse(saved) as User;
-    // ensure parsed user still exists in users list with updated status
-    const matched = DEFAULT_USERS.find(u => u.id === parsed.id) || parsed;
-    return matched;
+    return parsed;
   });
 
   // Chave PIX configuration
@@ -81,6 +89,43 @@ export default function App() {
     const savedUser = localStorage.getItem(`${STORAGE_KEY}_current_user`);
     return savedUser ? 'games' : 'auth';
   });
+
+  // Fetch users & pixKey from central server
+  const fetchServerData = useCallback(async () => {
+    try {
+      const resUsers = await fetch('/api/users');
+      if (resUsers.ok) {
+        const serverUsers: User[] = await resUsers.json();
+        setUsers(serverUsers);
+        localStorage.setItem(`${STORAGE_KEY}_users`, JSON.stringify(serverUsers));
+
+        // update logged in user if status changed
+        if (currentUser) {
+          const updatedCurrent = serverUsers.find(u => u.id === currentUser.id || u.username === currentUser.username);
+          if (updatedCurrent) {
+            setCurrentUser(updatedCurrent);
+          }
+        }
+      }
+
+      const resPix = await fetch('/api/pix-key');
+      if (resPix.ok) {
+        const data = await resPix.json();
+        if (data.pixKey) {
+          setPixKey(data.pixKey);
+          localStorage.setItem(`${STORAGE_KEY}_pix_key`, data.pixKey);
+        }
+      }
+    } catch (e) {
+      // offline fallback
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    fetchServerData();
+    const interval = setInterval(fetchServerData, 4000); // sync every 4s
+    return () => clearInterval(interval);
+  }, [fetchServerData]);
 
   // Game data state
   const [fixasRow1, setFixasRow1] = useState<string[]>(() => {
@@ -112,20 +157,12 @@ export default function App() {
 
   // Persistence
   useEffect(() => {
-    localStorage.setItem(`${STORAGE_KEY}_users`, JSON.stringify(users));
-  }, [users]);
-
-  useEffect(() => {
     if (currentUser) {
       localStorage.setItem(`${STORAGE_KEY}_current_user`, JSON.stringify(currentUser));
     } else {
       localStorage.removeItem(`${STORAGE_KEY}_current_user`);
     }
   }, [currentUser]);
-
-  useEffect(() => {
-    localStorage.setItem(`${STORAGE_KEY}_pix_key`, pixKey);
-  }, [pixKey]);
 
   useEffect(() => {
     localStorage.setItem(`${STORAGE_KEY}_row1`, JSON.stringify(fixasRow1));
@@ -145,15 +182,52 @@ export default function App() {
     }
   };
 
-  const handleRegisterUser = (newUser: Omit<User, 'id' | 'status' | 'role' | 'createdAt'>) => {
-    const created: User = {
+  const handleRegisterUser = async (newUser: Omit<User, 'id' | 'status' | 'role' | 'createdAt'>) => {
+    const createdLocally: User = {
       ...newUser,
       id: Date.now().toString(),
       status: 'pending',
       role: 'user',
       createdAt: new Date().toISOString(),
     };
-    setUsers(prev => [...prev, created]);
+
+    setUsers(prev => [...prev, createdLocally]);
+
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...newUser, status: 'pending', role: 'user' }),
+      });
+      if (res.ok) {
+        fetchServerData();
+      }
+    } catch (e) {
+      // Offline fallback already in state
+    }
+  };
+
+  const handleAddManualUser = async (newUser: Omit<User, 'id' | 'createdAt'>) => {
+    const createdLocally: User = {
+      ...newUser,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+    };
+
+    setUsers(prev => [...prev, createdLocally]);
+
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser),
+      });
+      if (res.ok) {
+        fetchServerData();
+      }
+    } catch (e) {
+      // Offline fallback
+    }
   };
 
   const handleLogout = () => {
@@ -162,7 +236,7 @@ export default function App() {
   };
 
   // Admin User Management Handlers
-  const handleUpdateUserStatus = (userId: string, newStatus: UserStatus) => {
+  const handleUpdateUserStatus = async (userId: string, newStatus: UserStatus) => {
     setUsers(prev =>
       prev.map(u => {
         if (u.id === userId) {
@@ -176,14 +250,46 @@ export default function App() {
       })
     );
 
-    // If updating current logged in user
     if (currentUser?.id === userId) {
       setCurrentUser(prev => (prev ? { ...prev, status: newStatus } : null));
     }
+
+    try {
+      await fetch(`/api/users/${userId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      fetchServerData();
+    } catch (e) {
+      // offline fallback
+    }
   };
 
-  const handleDeleteUser = (userId: string) => {
+  const handleDeleteUser = async (userId: string) => {
     setUsers(prev => prev.filter(u => u.id !== userId));
+
+    try {
+      await fetch(`/api/users/${userId}`, { method: 'DELETE' });
+      fetchServerData();
+    } catch (e) {
+      // offline fallback
+    }
+  };
+
+  const handleUpdatePixKey = async (newPixKey: string) => {
+    setPixKey(newPixKey);
+    localStorage.setItem(`${STORAGE_KEY}_pix_key`, newPixKey);
+
+    try {
+      await fetch('/api/pix-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pixKey: newPixKey }),
+      });
+    } catch (e) {
+      // offline
+    }
   };
 
   // Generate games automatically
@@ -318,8 +424,9 @@ export default function App() {
             onUpdateUserStatus={handleUpdateUserStatus}
             onDeleteUser={handleDeleteUser}
             pixKey={pixKey}
-            onUpdatePixKey={setPixKey}
+            onUpdatePixKey={handleUpdatePixKey}
             onCloseAdmin={() => setViewMode('games')}
+            onAddManualUser={handleAddManualUser}
           />
         )}
 
