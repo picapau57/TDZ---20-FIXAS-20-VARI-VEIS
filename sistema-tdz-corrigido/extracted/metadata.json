@@ -1,0 +1,6 @@
+{
+  "name": "Sistema TDZ - Fechamento de Dezenas",
+  "description": "Sistema de fechamento de Ternos de Dezenas (TDZ) com 20 dezenas fixas e 20 variáveis, gerador de 120 e 200 jogos e conferidor automático de acertos, duques e ternos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
