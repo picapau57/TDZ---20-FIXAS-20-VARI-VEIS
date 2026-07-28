@@ -404,6 +404,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       <Phone className="w-3.5 h-3.5 text-slate-500" />
                       {user.phone}
                     </span>
+                    <span className="bg-slate-900 px-2 py-0.5 rounded border border-slate-800 text-slate-300 font-mono">
+                      🔑 Senha: <strong className="text-amber-400 font-bold">{user.password}</strong>
+                    </span>
                     <span>
                       Cadastrado em:{' '}
                       {new Date(user.createdAt).toLocaleDateString('pt-BR')}

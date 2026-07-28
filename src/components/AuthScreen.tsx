@@ -53,16 +53,29 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       return;
     }
 
-    const found = users.find(
-      u => u.username.toLowerCase() === cleanUser || u.phone.replace(/\D/g, '') === cleanUser.replace(/\D/g, '')
-    );
+    const cleanUserPhoneDigits = cleanUser.replace(/\D/g, '');
+
+    const found = users.find(u => {
+      const uUsername = u.username.trim().toLowerCase();
+      const uPhoneDigits = (u.phone || '').replace(/\D/g, '');
+
+      // Direct match on username
+      if (uUsername === cleanUser) return true;
+
+      // Phone match ONLY if cleanUser input has at least 8 digits and user phone has at least 8 digits
+      if (cleanUserPhoneDigits.length >= 8 && uPhoneDigits.length >= 8 && uPhoneDigits === cleanUserPhoneDigits) {
+        return true;
+      }
+
+      return false;
+    });
 
     if (!found) {
       setLoginError('Usuário não encontrado. Verifique se digitou corretamente ou faça o cadastro.');
       return;
     }
 
-    if (found.password !== cleanPass) {
+    if (found.password.trim() !== cleanPass) {
       setLoginError('Senha incorreta. Tente novamente.');
       return;
     }
