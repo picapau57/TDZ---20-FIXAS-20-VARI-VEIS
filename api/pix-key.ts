@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabase } from './_supabase';
+import { supabase } from './_supabase.js';
 
 const DEFAULT_PIX = '(62) 98428-9911';
 
