@@ -45,8 +45,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
     setLoginError('');
     setPendingUser(null);
 
-    const cleanUser = loginUsername.trim().toLowerCase();
-    const cleanPass = loginPassword.trim();
+    // Clean inputs: trim whitespace and strip outer quotes if present
+    const cleanUser = loginUsername.trim().toLowerCase().replace(/^["']|["']$/g, '');
+    const cleanPass = loginPassword.trim().replace(/^["']|["']$/g, '');
 
     if (!cleanUser || !cleanPass) {
       setLoginError('Por favor, informe seu usuário e senha.');
@@ -55,14 +56,16 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
 
     const cleanUserPhoneDigits = cleanUser.replace(/\D/g, '');
 
-    const found = users.find(u => {
+    // Find all potential candidates matching username, name, or phone number
+    const candidates = users.filter(u => {
       const uUsername = u.username.trim().toLowerCase();
+      const uName = u.name.trim().toLowerCase();
       const uPhoneDigits = (u.phone || '').replace(/\D/g, '');
 
-      // Direct match on username
-      if (uUsername === cleanUser) return true;
+      // Direct match on username or full name
+      if (uUsername === cleanUser || uName === cleanUser) return true;
 
-      // Phone match ONLY if cleanUser input has at least 8 digits and user phone has at least 8 digits
+      // Phone match ONLY if cleanUser input has at least 8 digits
       if (cleanUserPhoneDigits.length >= 8 && uPhoneDigits.length >= 8 && uPhoneDigits === cleanUserPhoneDigits) {
         return true;
       }
@@ -70,33 +73,36 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       return false;
     });
 
-    if (!found) {
+    if (candidates.length === 0) {
       setLoginError('Usuário não encontrado. Verifique se digitou corretamente ou faça o cadastro.');
       return;
     }
 
-    if (found.password.trim() !== cleanPass) {
+    // Try to find a candidate whose password matches
+    const matchedUser = candidates.find(u => u.password.trim() === cleanPass);
+
+    if (!matchedUser) {
       setLoginError('Senha incorreta. Tente novamente.');
       return;
     }
 
-    if (found.role === 'admin') {
-      onLoginSuccess(found);
+    if (matchedUser.role === 'admin') {
+      onLoginSuccess(matchedUser);
       return;
     }
 
-    if (found.status === 'pending') {
-      setPendingUser(found);
+    if (matchedUser.status === 'pending') {
+      setPendingUser(matchedUser);
       return;
     }
 
-    if (found.status === 'rejected') {
+    if (matchedUser.status === 'rejected') {
       setLoginError('Seu acesso foi recusado ou suspenso pelo administrador.');
       return;
     }
 
     // Approved player
-    onLoginSuccess(found);
+    onLoginSuccess(matchedUser);
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {

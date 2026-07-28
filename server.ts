@@ -40,7 +40,7 @@ const INITIAL_USERS: ServerUser[] = [
     name: 'Dona',
     phone: '(62) 98428-9911',
     password: '123456',
-    status: 'pending',
+    status: 'approved',
     role: 'user',
     createdAt: new Date().toISOString(),
   },
